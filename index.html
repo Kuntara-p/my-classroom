@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเช็คชื่อและเก็บคะแนน</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background-color: #fafafa;">
+
+    <h1 style="text-align: center; color: #333;">🏫 ระบบเช็คชื่อและเก็บคะแนน</h1>
+
+    <div style="margin-bottom: 20px; padding: 15px; background-color: #e6f2ff; border-radius: 8px; border: 1px solid #b3d4ff;">
+        <h3 style="margin-top: 0;">1. เพิ่มรายชื่อนักเรียนใหม่</h3>
+        <input type="text" id="studentName" placeholder="กรอกชื่อ-นามสกุล" style="padding: 5px;">
+        <button id="addStudentBtn" style="padding: 5px 10px; cursor: pointer;">บันทึกรายชื่อ</button>
+    </div>
+
+    <div style="margin-bottom: 20px; padding: 15px; background-color: #f0f8ff; border-radius: 8px; border: 1px solid #cce0ff;">
+        <h3 style="margin-top: 0;">2. เช็คชื่อประจำวัน</h3>
+        <label for="attendanceDate">เลือกวันที่: </label>
+        <input type="date" id="attendanceDate" style="padding: 5px;">
+    </div>
+
+    <div style="margin-bottom: 20px; padding: 15px; background-color: #fff0f5; border-radius: 8px; border: 1px solid #ffcce0;">
+        <h3 style="margin-top: 0;">3. ระบบเก็บคะแนน</h3>
+        <label for="assignmentName">ชื่องาน / การสอบ: </label>
+        <input type="text" id="assignmentName" placeholder="เช่น สอบกลางภาค, การบ้าน" style="padding: 5px;">
+    </div>
+
+    <div style="background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+        <h3 style="margin-top: 0;">📝 รายชื่อนักเรียนในห้อง (คลิกเพื่อเช็คชื่อ/กรอกคะแนน)</h3>
+        <ul id="studentList" style="list-style-type: none; padding: 0;"></ul>
+    </div>
+
+    <hr style="margin-top: 30px; margin-bottom: 20px;">
+    
+    <div style="margin-bottom: 50px; background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+        <h2 style="margin-top: 0;">📊 สรุปผลข้อมูลนักเรียน (Dashboard)</h2>
+        <button id="loadReportBtn" style="padding: 10px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+            โหลดรายงานสรุป
+        </button>
+        
+        <table border="1" style="width: 100%; margin-top: 15px; text-align: center; border-collapse: collapse;">
+            <thead style="background-color: #ddd;">
+                <tr>
+                    <th style="padding: 10px;">ชื่อ-นามสกุล</th>
+                    <th style="padding: 10px;">มาเรียน (ครั้ง)</th>
+                    <th style="padding: 10px;">คะแนนเก็บรวม</th>
+                </tr>
+            </thead>
+            <tbody id="reportTableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
