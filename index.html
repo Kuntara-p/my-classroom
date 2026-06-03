@@ -3,54 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คชื่อและเก็บคะแนน</title>
-</head>
-<body style="font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background-color: #fafafa;">
-
-    <h1 style="text-align: center; color: #333;">🏫 ระบบเช็คชื่อและเก็บคะแนน</h1>
-
-    <div style="margin-bottom: 20px; padding: 15px; background-color: #e6f2ff; border-radius: 8px; border: 1px solid #b3d4ff;">
-        <h3 style="margin-top: 0;">1. เพิ่มรายชื่อนักเรียนใหม่</h3>
-        <input type="text" id="studentName" placeholder="กรอกชื่อ-นามสกุล" style="padding: 5px;">
-        <button id="addStudentBtn" style="padding: 5px 10px; cursor: pointer;">บันทึกรายชื่อ</button>
-    </div>
-
-    <div style="margin-bottom: 20px; padding: 15px; background-color: #f0f8ff; border-radius: 8px; border: 1px solid #cce0ff;">
-        <h3 style="margin-top: 0;">2. เช็คชื่อประจำวัน</h3>
-        <label for="attendanceDate">เลือกวันที่: </label>
-        <input type="date" id="attendanceDate" style="padding: 5px;">
-    </div>
-
-    <div style="margin-bottom: 20px; padding: 15px; background-color: #fff0f5; border-radius: 8px; border: 1px solid #ffcce0;">
-        <h3 style="margin-top: 0;">3. ระบบเก็บคะแนน</h3>
-        <label for="assignmentName">ชื่องาน / การสอบ: </label>
-        <input type="text" id="assignmentName" placeholder="เช่น สอบกลางภาค, การบ้าน" style="padding: 5px;">
-    </div>
-
-    <div style="background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
-        <h3 style="margin-top: 0;">📝 รายชื่อนักเรียนในห้อง (คลิกเพื่อเช็คชื่อ/กรอกคะแนน)</h3>
-        <ul id="studentList" style="list-style-type: none; padding: 0;"></ul>
-    </div>
-
-    <hr style="margin-top: 30px; margin-bottom: 20px;">
-    
-    <div style="margin-bottom: 50px; background-color: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
-        <h2 style="margin-top: 0;">📊 สรุปผลข้อมูลนักเรียน (Dashboard)</h2>
-        <button id="loadReportBtn" style="padding: 10px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-            โหลดรายงานสรุป
-        </button>
+    <title>ระบบเช็คชื่อและเก็บคะแนน (Smart Classroom)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ตั้งค่าพื้นฐานให้สวยงาม ทันสมัย */
+        :root {
+            --primary: #4361ee;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f1c40f;
+            --dark: #2b2d42;
+            --gray: #8d99ae;
+            --bg: #f4f7f6;
+        }
         
-        <table border="1" style="width: 100%; margin-top: 15px; text-align: center; border-collapse: collapse;">
-            <thead style="background-color: #ddd;">
-                <tr>
-                    <th style="padding: 10px;">ชื่อ-นามสกุล</th>
-                    <th style="padding: 10px;">มาเรียน (ครั้ง)</th>
-                    <th style="padding: 10px;">คะแนนเก็บรวม</th>
-                </tr>
-            </thead>
-            <tbody id="reportTableBody">
-                </tbody>
-        </table>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: var(--bg);
+            color: var(--dark);
+            margin: 0;
+            padding: 30px 15px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: var(--primary);
+        }
+
+        /* ดีไซน์แบบการ์ด (Card) ให้ดูเป็นหมวดหมู่ */
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-top: 4px solid var(--primary);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--dark);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* จัดเรียงช่องกรอกข้อมูลให้สวยงาม */
+        .form-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"], input[type="date"], input[type="number"] {
+            padding: 10px 15px;
+            border: 1px solid #dcdde1;
+            border-radius: 8px;
+            font-family: 'Prompt', sans-serif;
+            font-size: 15px;
+            outline: none;
+            transition: 0.3s;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+
+        /* ดีไซน์ปุ่มกด (Buttons) */
+        button {
+            font-family: 'Prompt', sans-serif;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: #3f37c9; }
+        
+        .btn-success { background-color: var(--success); color: white; }
+        .btn-success:hover { background-color: #27ae60; }
+
+        /* ตารางสไตล์มินิมอล */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: var(--gray);
+            font-weight: 500;
+            text-align: left;
+            padding: 15px;
+            border-bottom: 2px solid #edf2f4;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #edf2f4;
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #fbfcff; }
+
+        /* ปุ่มสถานะเช็คชื่อ */
+        .status-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-right: 5px;
+            background-color: #f1f2f6;
+            color: var(--dark);
+        }
+        .status-btn:hover { filter: brightness(0.9); }
+        .btn-score { padding: 8px 15px; background: #48dbfb; color: #222; margin-left: 5px; }
+
+        /* กล่องเล็กสำหรับใส่คะแนน */
+        .score-input { width: 80px !important; min-width: 80px !important; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-title">🏫 ระบบจัดการชั้นเรียนอัจฉริยะ</div>
+
+        <div class="card" style="border-top-color: var(--success);">
+            <h3>👤 เพิ่มรายชื่อนักเรียนใหม่</h3>
+            <div class="form-group">
+                <input type="text" id="studentName" placeholder="กรอกชื่อ-นามสกุลนักเรียน...">
+                <button class="btn-success" id="addStudentBtn">+ บันทึกรายชื่อ</button>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: var(--warning);">
+            <h3>📅 ตั้งค่าการสอนประจำวัน (เลือกก่อนเช็คชื่อหรือให้คะแนน)</h3>
+            <div class="form-group">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 13px; color: var(--gray); margin-bottom: 5px;">วันที่เช็คชื่อ</label>
+                    <input type="date" id="attendanceDate" style="width: 100%; box-sizing: border-box;">
+                </div>
+                <div style="flex: 2;">
+                    <label style="display: block; font-size: 13px; color: var(--gray); margin-bottom: 5px;">ชื่องาน / การสอบ</label>
+                    <input type="text" id="assignmentName" placeholder="เช่น สอบกลางภาค, การบ้านบทที่ 1" style="width: 100%; box-sizing: border-box;">
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📝 รายชื่อนักเรียน (เช็คชื่อ & เก็บผลงาน)</h3>
+            <div style="overflow-x: auto;">
+                <table id="studentTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">ชื่อ-นามสกุล</th>
+                            <th style="width: 45%;">เช็คชื่อประจำวัน</th>
+                            <th style="width: 30%;">กรอกคะแนนชิ้นงาน</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentListBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="border-top-color: var(--danger);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">📊 สรุปผลข้อมูลนักเรียน (Dashboard)</h3>
+                <button class="btn-primary" id="loadReportBtn">🔄 โหลดรายงานล่าสุด</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th style="text-align: center;">มาเรียน (ครั้ง)</th>
+                            <th style="text-align: center;">คะแนนเก็บรวม</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--gray);">คลิกปุ่ม "โหลดรายงานล่าสุด" เพื่อดูผลสรุป</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
     <script type="module" src="app.js"></script>
