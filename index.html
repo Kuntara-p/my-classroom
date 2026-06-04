@@ -165,7 +165,8 @@
             --border-line: rgba(0, 0, 0, 0.05);
         }
         [data-theme="light"] .main-content { background: radial-gradient(circle at top right, #f1f5f9 0%, var(--bg-main) 100%); }
-        [data-theme="light"] input, [data-theme="light"] select { color-scheme: light; }
+        [data-theme="light"] input, [data-theme="light"] select { color-scheme: light; background-color: var(--bg-input); color: var(--text-main); border-color: #cbd5e1; }
+        [data-theme="light"] input:focus, [data-theme="light"] select:focus { background-color: #ffffff; border-color: var(--gold-luxury); box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); color: var(--text-main); }
         [data-theme="light"] th { background-color: #f1f5f9; color: var(--blue-pearl); text-shadow: none; }
         [data-theme="light"] .card, [data-theme="light"] .sidebar, [data-theme="light"] .modal-box, [data-theme="light"] .preview-toolbar { box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         [data-theme="light"] .card:hover { box-shadow: 0 15px 45px rgba(0,0,0,0.1); border-color: rgba(212, 175, 55, 0.3); }
