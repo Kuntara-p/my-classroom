@@ -151,6 +151,40 @@
             .preview-paper { box-shadow: none !important; margin: 0 !important; padding: 0 !important; width: 100% !important; min-height: auto !important; height: auto !important; page-break-after: avoid !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
+        [data-theme="light"] {
+            --bg-main: #f8f9fa;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --bg-input: #f1f5f9;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --gold-luxury: #d4af37;
+            --gold-light: #b48600;
+            --blue-pearl: #1d4ed8;
+            --border-glow: rgba(212, 175, 55, 0.1);
+            --border-line: rgba(0, 0, 0, 0.05);
+        }
+        [data-theme="light"] .main-content { background: radial-gradient(circle at top right, #f1f5f9 0%, var(--bg-main) 100%); }
+        [data-theme="light"] input, [data-theme="light"] select { color-scheme: light; }
+        [data-theme="light"] th { background-color: #f1f5f9; color: var(--blue-pearl); text-shadow: none; }
+        [data-theme="light"] .card, [data-theme="light"] .sidebar, [data-theme="light"] .modal-box, [data-theme="light"] .preview-toolbar { box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        [data-theme="light"] .card:hover { box-shadow: 0 15px 45px rgba(0,0,0,0.1); border-color: rgba(212, 175, 55, 0.3); }
+        [data-theme="light"] .box-weekend { background-color: #f8fafc; border-color: #cbd5e1; }
+        [data-theme="light"] .box-noclass { background-color: #ffffff; border-color: #e2e8f0; color: #475569; }
+        [data-theme="light"] .stat-card { box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        [data-theme="light"] .modal-overlay { background-color: rgba(255, 255, 255, 0.8); }
+        [data-theme="light"] .preview-modal { background-color: rgba(248, 250, 252, 0.95); }
+        [data-theme="light"] .sidebar-brand { text-shadow: none; }
+        [data-theme="light"] .page-header h2 { text-shadow: none; }
+        [data-theme="light"] .stat-value { text-shadow: none; }
+        [data-theme="light"] .special-status-box { text-shadow: none; }
+        [data-theme="light"] .text-present { text-shadow: none; }
+        [data-theme="light"] .text-absent { text-shadow: none; }
+        [data-theme="light"] .text-leave { text-shadow: none; }
+        [data-theme="light"] .text-sick { text-shadow: none; }
+        
+        .theme-toggle-btn { margin: 20px; padding: 10px 15px; background: var(--bg-input); border: 1px solid var(--border-line); border-radius: 8px; color: var(--text-main); font-family: 'Prompt', sans-serif; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s ease; font-weight: 500; width: calc(100% - 40px); box-sizing: border-box; }
+        .theme-toggle-btn:hover { border-color: var(--gold-luxury); box-shadow: 0 0 10px rgba(212, 175, 55, 0.2); }
     </style>
 </head>
 <body>
@@ -173,6 +207,14 @@
 
             <div class="menu-title">ตั้งค่าระบบ</div>
             <div class="menu-item" onclick="switchPage('setting-page', event)">⚙️ ข้อมูลทั่วไปประจำวิชา</div>
+        </div>
+    
+        <div class="menu-group" style="margin-top: 40px; border-top: 1px solid var(--border-line); padding-top: 10px;">
+            <span class="menu-title">ตั้งค่าหน้าจอ</span>
+            <button id="themeToggleBtn" class="theme-toggle-btn">
+                <span id="themeText">สลับโทนสีจอ</span>
+                <span id="themeIcon">🌙</span>
+            </button>
         </div>
     </div>
 
@@ -1200,6 +1242,46 @@ document.getElementById("btnConfirmPrint").addEventListener("click", () => {
 loadRoomsDropdownAndTable();
 loadMetadata();
 loadAllStudentsToRegistryTable();
+
+    // ================= [ ระบบตั้งค่าธีมสว่าง-มืดอัตโนมัติ ] =================
+    const themeToggleBtn = document.getElementById("themeToggleBtn");
+    const themeIcon = document.getElementById("themeIcon");
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        if(themeIcon) {
+            if(theme === "light") {
+                themeIcon.innerText = "☀️";
+            } else {
+                themeIcon.innerText = "🌙";
+            }
+        }
+    }
+
+    function initTheme() {
+        const savedTheme = localStorage.getItem("appTheme");
+        if (savedTheme) {
+            applyTheme(savedTheme);
+            return;
+        }
+        const hour = new Date().getHours();
+        if (hour >= 6 && hour < 18) {
+            applyTheme("light");
+        } else {
+            applyTheme("dark");
+        }
+    }
+
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener("click", () => {
+            const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+            const newTheme = currentTheme === "dark" ? "light" : "dark";
+            applyTheme(newTheme);
+            localStorage.setItem("appTheme", newTheme);
+        });
+    }
+
+    initTheme();
 </script>
 </body>
 </html>
