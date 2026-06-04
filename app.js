@@ -1,8 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, doc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, doc, deleteDoc, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // =========================================================================
-// ⚠️ 1. วาง Firebase Config เฉพาะของคุณครูในกรอบนี้ (ห้ามลบเครื่องหมายปีกกา `};`)
+// ⚠️ 1. วาง Firebase Config เฉพาะของคุณครูในกรอบนี้ (ห้ามลบปีกกาเปิด-ปิด)
 // =========================================================================
 const firebaseConfig = {
   apiKey: "AIzaSyAENHpxjeI5cLqJXUyu9rU19C8WLupsO-A",
@@ -65,6 +65,7 @@ const btnSaveMeta = document.getElementById("btnSaveMeta");
 const newRoomName = document.getElementById("newRoomName");
 const btnAddRoom = document.getElementById("btnAddRoom");
 const settingRoomTableBody = document.getElementById("settingRoomTableBody");
+
 const studentTargetRoom = document.getElementById("studentTargetRoom");
 const newStudentNumber = document.getElementById("newStudentNumber");
 const newStudentName = document.getElementById("newStudentName");
@@ -73,6 +74,8 @@ const addStudentBtn = document.getElementById("addStudentBtn");
 const importTargetRoom = document.getElementById("importTargetRoom");
 const importFileSelector = document.getElementById("importFileSelector");
 const btnImportFile = document.getElementById("btnImportFile");
+
+const filterStudentRoom = document.getElementById("filterStudentRoom");
 const searchStudentInput = document.getElementById("searchStudentInput");
 const studentRegistryTableBody = document.getElementById("studentRegistryTableBody");
 
@@ -86,6 +89,7 @@ attendanceDate.addEventListener("change", loadAttendancePage);
 reportRoom.addEventListener("change", renderAttendanceMatrix);
 reportMonth.addEventListener("change", renderAttendanceMatrix);
 searchStudentInput.addEventListener("input", filterStudentRegistryTable);
+filterStudentRoom.addEventListener("change", filterStudentRegistryTable);
 
 // ================= [ ระบบลบข้อมูล Modal ] =================
 let itemToDelete = null; 
@@ -98,16 +102,19 @@ const btnCancelDelete = document.getElementById("btnCancelDelete");
 btnCancelDelete.addEventListener("click", () => { customDeleteModal.style.display = "none"; itemToDelete = null; });
 btnConfirmDelete.addEventListener("click", async () => {
     customDeleteModal.style.display = "none"; 
-    if (deleteType === "room" && itemToDelete) {
-        await deleteDoc(doc(db, "rooms", itemToDelete.id));
-        window.showToast(`🗑️ ลบห้องเรียน ${itemToDelete.name} เรียบร้อยแล้ว`);
-        loadRoomsDropdownAndTable();
-    } else if (deleteType === "student" && itemToDelete) {
-        await deleteDoc(doc(db, "students", itemToDelete.id));
-        window.showToast(`🗑️ ลบรายชื่อ ${itemToDelete.name} ออกจากระบบแล้ว`);
-        loadAttendancePage();
-        renderAttendanceMatrix();
-        loadAllStudentsToRegistryTable();
+    try {
+        if (deleteType === "room" && itemToDelete) {
+            await deleteDoc(doc(db, "rooms", itemToDelete.id));
+            window.showToast(`🗑️ ลบห้องเรียน ${itemToDelete.name} เรียบร้อยแล้ว`);
+            loadRoomsDropdownAndTable();
+        } else if (deleteType === "student" && itemToDelete) {
+            await deleteDoc(doc(db, "students", itemToDelete.id));
+            window.showToast(`🗑️ ลบรายชื่อ ${itemToDelete.name} ออกจากระบบแล้ว`);
+            loadRoomsDropdownAndTable(); 
+        }
+    } catch (e) {
+        console.error(e);
+        window.showToast("❌ เกิดข้อผิดพลาดในการลบข้อมูล กรุณาลองใหม่อีกครั้ง");
     }
     itemToDelete = null;
 });
@@ -176,6 +183,7 @@ async function loadMetadata() {
     }
 }
 
+// ================= [ จัดการข้อมูลห้องเรียน และนับจำนวนนักเรียน ] =================
 btnAddRoom.addEventListener("click", async () => {
     const room = newRoomName.value.trim();
     if(!room) { window.showToast("⚠️ กรุณากรอกชื่อห้องเรียนก่อนครับ"); return; }
@@ -187,23 +195,52 @@ btnAddRoom.addEventListener("click", async () => {
 
 async function loadRoomsDropdownAndTable() {
     const querySnapshot = await getDocs(collection(db, "rooms"));
+    
     document.querySelectorAll(".room-dropdown").forEach(dropdown => {
-        dropdown.innerHTML = '<option value="">-- กรุณาเลือกห้องเรียน --</option>';
+        if (dropdown.id === "filterStudentRoom") {
+            dropdown.innerHTML = '<option value="">-- ทุกห้องเรียน --</option>';
+        } else {
+            dropdown.innerHTML = '<option value="">-- กรุณาเลือกห้องเรียน --</option>';
+        }
         querySnapshot.forEach(doc => {
             const opt = document.createElement("option");
             opt.value = doc.data().roomName;
             opt.textContent = doc.data().roomName;
-            dropdown.appendChild(opt);
+            dropdown.appendChild(opt.cloneNode(true));
         });
+    });
+
+    const studentSnap = await getDocs(collection(db, "students"));
+    const roomStats = {};
+    studentSnap.forEach(doc => {
+        const s = doc.data();
+        if (!roomStats[s.room]) roomStats[s.room] = { total: 0, boy: 0, girl: 0 };
+        
+        roomStats[s.room].total++;
+        if (s.fullName.includes("ด.ช.") || s.fullName.includes("เด็กชาย")) {
+            roomStats[s.room].boy++;
+        } else if (s.fullName.includes("ด.ญ.") || s.fullName.includes("เด็กหญิง")) {
+            roomStats[s.room].girl++;
+        }
     });
 
     settingRoomTableBody.innerHTML = "";
     if(querySnapshot.empty) {
-        settingRoomTableBody.innerHTML = "<tr><td colspan='2' style='color:var(--text-muted); text-align:center;'>ยังไม่มีห้องเรียนในระบบ</td></tr>";
+        settingRoomTableBody.innerHTML = "<tr><td colspan='5' style='color:var(--text-muted); text-align:center;'>ยังไม่มีห้องเรียนในระบบ</td></tr>";
     }
+    
     querySnapshot.forEach(roomDoc => {
+        const rName = roomDoc.data().roomName;
+        const stats = roomStats[rName] || { total: 0, boy: 0, girl: 0 };
+        
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td style="font-weight:500; color:var(--blue-pearl);">${roomDoc.data().roomName}</td><td style="text-align:center;"><button class="btn btn-red" style="padding:4px 10px; font-size:12px;" onclick="deleteRoom('${roomDoc.id}', '${roomDoc.data().roomName}')">🗑️ ลบห้อง</button></td>`;
+        tr.innerHTML = `
+            <td style="font-weight:500; color:var(--blue-pearl);">${rName}</td>
+            <td style="text-align:center; font-weight:600; font-size:15px;">${stats.total}</td>
+            <td style="text-align:center; color:var(--blue); font-weight:500;">${stats.boy}</td>
+            <td style="text-align:center; color:var(--red); font-weight:500;">${stats.girl}</td>
+            <td style="text-align:center;"><button class="btn btn-red" style="padding:4px 10px; font-size:12px;" onclick="deleteRoom('${roomDoc.id}', '${rName}')">🗑️ ลบห้อง</button></td>
+        `;
         settingRoomTableBody.appendChild(tr);
     });
 
@@ -219,19 +256,24 @@ window.deleteRoom = function(roomId, roomName) {
     customDeleteModal.style.display = "flex";
 };
 
+// ================= [ จัดการข้อมูลนักเรียน ] =================
 addStudentBtn.addEventListener("click", async () => {
-    const name = newStudentName.value.trim();
+    // 🔥 ลบเครื่องหมายคำพูด (") ออกอัตโนมัติ ป้องกันระบบพัง 🔥
+    let name = newStudentName.value.replace(/["']/g, '').trim(); 
     const num = parseInt(newStudentNumber.value);
     const room = studentTargetRoom.value;
     
     if(!name || !num || !room) { window.showToast("⚠️ กรุณากรอกข้อมูลนักเรียนให้ครบถ้วนและเลือกห้องเรียนก่อนครับ"); return; }
-    await addDoc(collection(db, "students"), { fullName: name, studentNo: num, room: room });
-    newStudentName.value = "";
-    newStudentNumber.value = "";
-    window.showToast(`👤 บันทึกนักเรียนเลขที่ ${num} เข้าห้อง ${room} สำเร็จ!`);
-    loadAttendancePage();
-    renderAttendanceMatrix();
-    loadAllStudentsToRegistryTable();
+    try {
+        await addDoc(collection(db, "students"), { fullName: name, studentNo: num, room: room });
+        newStudentName.value = "";
+        newStudentNumber.value = "";
+        window.showToast(`👤 บันทึกนักเรียนเลขที่ ${num} เข้าห้อง ${room} สำเร็จ!`);
+        loadRoomsDropdownAndTable();
+    } catch (e) {
+        console.error(e);
+        window.showToast("❌ เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่อีกครั้ง");
+    }
 });
 
 window.deleteStudent = function(studentId, studentName) {
@@ -255,26 +297,49 @@ btnImportFile.addEventListener("click", () => {
         btnImportFile.textContent = "กำลังประมวลผลไฟล์...";
         btnImportFile.disabled = true;
 
-        for (let line of lines) {
-            if(!line.trim()) continue;
-            const parts = line.split(",");
-            let studentNo = importCount + 1;
-            let fullName = line.trim();
-            if(parts.length >= 2) {
-                studentNo = parseInt(parts[0].trim()) || (importCount + 1);
-                fullName = parts[1].trim();
+        try {
+            // 🔥 Firestore writeBatch รองรับสูงสุด 500 รายการต่อ 1 Batch 🔥
+            let batch = writeBatch(db);
+            let batchCount = 0;
+            for (let line of lines) {
+                if(!line.trim()) continue;
+                const parts = line.split(",");
+                let studentNo = importCount + 1;
+                
+                // 🔥 ป้องกันเครื่องหมายคำพูดจากไฟล์ CSV 🔥
+                let fullName = line.trim().replace(/^"|"$/g, '').replace(/["']/g, ''); 
+                
+                if(parts.length >= 2) {
+                    studentNo = parseInt(parts[0].replace(/["']/g, '').trim()) || (importCount + 1);
+                    fullName = parts[1].replace(/^"|"$/g, '').replace(/["']/g, '').trim();
+                }
+                
+                const studentDocRef = doc(collection(db, "students"));
+                batch.set(studentDocRef, { fullName: fullName, studentNo: studentNo, room: targetRoom });
+                importCount++;
+                batchCount++;
+                
+                // ถ้าครบ 500 รายการ ให้ commit แล้วสร้าง batch ใหม่
+                if (batchCount >= 500) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                    batchCount = 0;
+                }
             }
-            await addDoc(collection(db, "students"), { fullName: fullName, studentNo: studentNo, room: targetRoom });
-            importCount++;
+            // commit ส่วนที่เหลือ
+            if (batchCount > 0) {
+                await batch.commit();
+            }
+            window.showToast(`📥 นำเข้ารายชื่อนักเรียนห้อง ${targetRoom} จำนวน ${importCount} คนเรียบร้อย!`);
+        } catch (error) {
+            console.error(error);
+            window.showToast("❌ เกิดข้อผิดพลาดในการนำเข้าข้อมูล");
+        } finally {
+            importFileSelector.value = ""; 
+            btnImportFile.textContent = "📥 เริ่มนำเข้าข้อมูลไฟล์";
+            btnImportFile.disabled = false;
+            loadRoomsDropdownAndTable();
         }
-        window.showToast(`📥 นำเข้ารายชื่อนักเรียนห้อง ${targetRoom} จำนวน ${importCount} คนเรียบร้อย!`);
-        importFileSelector.value = ""; 
-        btnImportFile.textContent = "📥 เริ่มนำเข้าข้อมูลไฟล์";
-        btnImportFile.disabled = false;
-        
-        loadAttendancePage();
-        renderAttendanceMatrix();
-        loadAllStudentsToRegistryTable();
     };
     reader.readAsText(file, "UTF-8");
 });
@@ -292,7 +357,7 @@ async function loadAllStudentsToRegistryTable() {
             if(a.room !== b.room) return a.room.localeCompare(b.room);
             return a.studentNo - b.studentNo;
         });
-        renderStudentRegistry(allStudentsCache);
+        filterStudentRegistryTable();
     } catch(e) { console.error(e); }
 }
 
@@ -303,12 +368,15 @@ function renderStudentRegistry(studentsArray) {
         return;
     }
     studentsArray.forEach(student => {
+        // 🔥 แปลงสัญลักษณ์พิเศษให้ปลอดภัยก่อนยัดลงในปุ่มลบ 🔥
+        const safeName = student.fullName.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td style="color:var(--text-muted); font-weight:500;">ห้อง ${student.room}</td>
             <td style="font-weight:600; color:var(--gold-luxury);">${student.studentNo}</td>
             <td style="font-weight:500;">${student.fullName}</td>
-            <td style="text-align:center;"><button class="btn btn-red" style="padding:4px 10px; font-size:12px;" onclick="deleteStudent('${student.id}', '${student.fullName}')">🗑️ ลบรายชื่อ</button></td>
+            <td style="text-align:center;"><button class="btn btn-red" style="padding:4px 10px; font-size:12px;" onclick="deleteStudent('${student.id}', '${safeName}')">🗑️ ลบรายชื่อ</button></td>
         `;
         studentRegistryTableBody.appendChild(tr);
     });
@@ -316,10 +384,17 @@ function renderStudentRegistry(studentsArray) {
 
 function filterStudentRegistryTable() {
     const keyword = searchStudentInput.value.toLowerCase().trim();
-    if(!keyword) { renderStudentRegistry(allStudentsCache); return; }
-    const filtered = allStudentsCache.filter(student => 
-        student.fullName.toLowerCase().includes(keyword) || student.room.toLowerCase().includes(keyword)
-    );
+    const selectedRoom = filterStudentRoom.value;
+    
+    let filtered = allStudentsCache;
+    if(selectedRoom) {
+        filtered = filtered.filter(s => s.room === selectedRoom);
+    }
+    if(keyword) {
+        filtered = filtered.filter(s => 
+            s.fullName.toLowerCase().includes(keyword) || s.room.toLowerCase().includes(keyword)
+        );
+    }
     renderStudentRegistry(filtered);
 }
 
@@ -366,7 +441,16 @@ async function loadAttendancePage() {
         if (isWeekend) {
             statusContent = `<div class="status-wrapper"><div class="special-status-box box-weekend">🌟 วันหยุด (เสาร์-อาทิตย์)</div><input type="hidden" name="status_${doc.id}" value="หยุด"></div>`;
         } else {
-            statusContent = `<div class="status-wrapper"><div class="radio-group"><label class="radio-label"><input type="radio" name="status_${doc.id}" value="มา" checked> มา</label><label class="radio-label"><input type="radio" name="status_${doc.id}" value="ขาด"> ขาด</label><label class="radio-label"><input type="radio" name="status_${doc.id}" value="ลา"> ลา</label><label class="radio-label"><input type="radio" name="status_${doc.id}" value="ป่วย"> ป่วย</label></div></div>`;
+            statusContent = `
+                <div class="status-wrapper">
+                    <div class="radio-group">
+                        <label class="radio-label"><input type="radio" name="status_${doc.id}" value="มา" checked><span>มา</span></label>
+                        <label class="radio-label"><input type="radio" name="status_${doc.id}" value="ขาด"><span>ขาด</span></label>
+                        <label class="radio-label"><input type="radio" name="status_${doc.id}" value="ลา"><span>ลา</span></label>
+                        <label class="radio-label"><input type="radio" name="status_${doc.id}" value="ป่วย"><span>ป่วย</span></label>
+                    </div>
+                </div>
+            `;
         }
 
         tr.innerHTML = `<td style="font-weight:600; color:var(--gold-luxury);">${student.studentNo}</td><td style="font-weight:500;">${student.fullName}</td><td class="status-cell">${statusContent}</td>`;
@@ -388,10 +472,23 @@ btnHolidayAll.addEventListener("click", () => {
     const isWeekend = (new Date(attendanceDate.value).getDay() === 0 || new Date(attendanceDate.value).getDay() === 6);
     document.querySelectorAll("#attendanceInputBody tr").forEach(row => {
         const id = row.getAttribute("data-id"); const statusCell = row.querySelector('.status-cell'); if(!statusCell) return;
-        if (isHolidayMode) { statusCell.innerHTML = `<div class="status-wrapper"><div class="special-status-box box-holiday">🌟 วันหยุดพิเศษ</div><input type="hidden" name="status_${id}" value="หยุด"></div>`;
+        if (isHolidayMode) { 
+            statusCell.innerHTML = `<div class="status-wrapper"><div class="special-status-box box-holiday">🌟 วันหยุดพิเศษ</div><input type="hidden" name="status_${id}" value="หยุด"></div>`;
         } else {
-            if (isWeekend) statusCell.innerHTML = `<div class="status-wrapper"><div class="special-status-box box-weekend">🌟 วันหยุด (เสาร์-อาทิตย์)</div><input type="hidden" name="status_${id}" value="หยุด"></div>`;
-            else statusCell.innerHTML = `<div class="status-wrapper"><div class="radio-group"><label class="radio-label"><input type="radio" name="status_${id}" value="มา" checked> มา</label><label class="radio-label"><input type="radio" name="status_${id}" value="ขาด"> ขาด</label><label class="radio-label"><input type="radio" name="status_${id}" value="ลา"> ลา</label><label class="radio-label"><input type="radio" name="status_${id}" value="ป่วย"> ป่วย</label></div></div>`;
+            if (isWeekend) {
+                statusCell.innerHTML = `<div class="status-wrapper"><div class="special-status-box box-weekend">🌟 วันหยุด (เสาร์-อาทิตย์)</div><input type="hidden" name="status_${id}" value="หยุด"></div>`;
+            } else {
+                statusCell.innerHTML = `
+                    <div class="status-wrapper">
+                        <div class="radio-group">
+                            <label class="radio-label"><input type="radio" name="status_${id}" value="มา" checked><span>มา</span></label>
+                            <label class="radio-label"><input type="radio" name="status_${id}" value="ขาด"><span>ขาด</span></label>
+                            <label class="radio-label"><input type="radio" name="status_${id}" value="ลา"><span>ลา</span></label>
+                            <label class="radio-label"><input type="radio" name="status_${id}" value="ป่วย"><span>ป่วย</span></label>
+                        </div>
+                    </div>
+                `;
+            }
         }
     });
 });
@@ -405,10 +502,23 @@ btnNoClassAll.addEventListener("click", () => {
     const isWeekend = (new Date(attendanceDate.value).getDay() === 0 || new Date(attendanceDate.value).getDay() === 6);
     document.querySelectorAll("#attendanceInputBody tr").forEach(row => {
         const id = row.getAttribute("data-id"); const statusCell = row.querySelector('.status-cell'); if(!statusCell) return;
-        if (isNoClassMode) { statusCell.innerHTML = `<div class="status-wrapper"><div class="special-status-box box-noclass">🚫 ไม่มีคาบเรียน</div><input type="hidden" name="status_${id}" value="ไม่มีคาบ"></div>`;
+        if (isNoClassMode) { 
+            statusCell.innerHTML = `<div class="status-wrapper"><div class="special-status-box box-noclass">🚫 ไม่มีคาบเรียน</div><input type="hidden" name="status_${id}" value="ไม่มีคาบ"></div>`;
         } else {
-            if (isWeekend) statusCell.innerHTML = `<div class="status-wrapper"><div class="special-status-box box-weekend">🌟 วันหยุด (เสาร์-อาทิตย์)</div><input type="hidden" name="status_${id}" value="หยุด"></div>`;
-            else statusCell.innerHTML = `<div class="status-wrapper"><div class="radio-group"><label class="radio-label"><input type="radio" name="status_${id}" value="มา" checked> มา</label><label class="radio-label"><input type="radio" name="status_${id}" value="ขาด"> ขาด</label><label class="radio-label"><input type="radio" name="status_${id}" value="ลา"> ลา</label><label class="radio-label"><input type="radio" name="status_${id}" value="ป่วย"> ป่วย</label></div></div>`;
+            if (isWeekend) {
+                statusCell.innerHTML = `<div class="status-wrapper"><div class="special-status-box box-weekend">🌟 วันหยุด (เสาร์-อาทิตย์)</div><input type="hidden" name="status_${id}" value="หยุด"></div>`;
+            } else {
+                statusCell.innerHTML = `
+                    <div class="status-wrapper">
+                        <div class="radio-group">
+                            <label class="radio-label"><input type="radio" name="status_${id}" value="มา" checked><span>มา</span></label>
+                            <label class="radio-label"><input type="radio" name="status_${id}" value="ขาด"><span>ขาด</span></label>
+                            <label class="radio-label"><input type="radio" name="status_${id}" value="ลา"><span>ลา</span></label>
+                            <label class="radio-label"><input type="radio" name="status_${id}" value="ป่วย"><span>ป่วย</span></label>
+                        </div>
+                    </div>
+                `;
+            }
         }
     });
 });
@@ -425,6 +535,7 @@ btnSaveAttendance.addEventListener("click", async () => {
     btnSaveAttendance.disabled = true;
 
     try {
+        const batch = writeBatch(db);
         for (let row of rows) {
             const id = row.getAttribute("data-id");
             const name = row.getAttribute("data-name");
@@ -434,12 +545,18 @@ btnSaveAttendance.addEventListener("click", async () => {
             const status = statusInput ? statusInput.value : "มา";
 
             const attendanceDocRef = doc(db, "attendance", `${id}_${date}`);
-            await setDoc(attendanceDocRef, { studentId: id, studentName: name, room: currentRoom, date: date, status: status, timestamp: new Date() });
+            batch.set(attendanceDocRef, { studentId: id, studentName: name, room: currentRoom, date: date, status: status, timestamp: new Date() });
         }
+        await batch.commit();
         window.showToast(`💾 บันทึกข้อมูลห้อง ${currentRoom} เรียบร้อยสมบูรณ์!`);
         renderAttendanceMatrix(); 
-    } catch (e) { console.error(e); window.showToast("❌ เกิดข้อผิดพลาดในการเซฟลงระบบคลาวด์"); } 
-    finally { btnSaveAttendance.textContent = "💾 บันทึกข้อมูลการเช็คชื่อ"; btnSaveAttendance.disabled = false; }
+    } catch (e) { 
+        console.error(e); 
+        window.showToast("❌ เกิดข้อผิดพลาดในการเซฟลงระบบคลาวด์"); 
+    } finally { 
+        btnSaveAttendance.textContent = "💾 บันทึกข้อมูลการเช็คชื่อ"; 
+        btnSaveAttendance.disabled = false; 
+    }
 });
 
 // ================= [ 5. ตารางประมวลผลรายงานสถิติ ] =================
@@ -507,11 +624,13 @@ async function renderAttendanceMatrix() {
 
     let grandTotalPresent = 0, grandTotalRecords = 0;
     let totalAbsent = 0, totalLeave = 0, totalSick = 0;
-
+    
+    let taughtDays = new Set();
     printCacheData = []; 
 
     if(studentsSnapshot.empty) {
         matrixBody.innerHTML = `<tr><td colspan="45" style="text-align:center; color:var(--text-muted);">ไม่พบข้อมูลรายงานของห้องเรียนนี้</td></tr>`;
+        document.getElementById("stat-total-classes").textContent = "0 คาบ";
         document.getElementById("stat-avg").textContent = "0%"; document.getElementById("stat-absent").textContent = "0 ครั้ง";
         document.getElementById("stat-leave").textContent = "0 ครั้ง"; document.getElementById("stat-sick").textContent = "0 ครั้ง";
         return;
@@ -533,26 +652,22 @@ async function renderAttendanceMatrix() {
             const status = attendanceMap[`${studentId}_${currentDayStr}`];
 
             let cellClass = ""; let cellText = "-"; let textClass = "text-muted";
-            let printBgClass = ""; // เพิ่มตัวแปรคลาสสีสำหรับตอนพิมพ์ PDF
 
             if (dayIdx === 0) cellClass = "bg-sun";
             if (dayIdx === 6) cellClass = "bg-sat";
-            if (dayIdx === 0 || dayIdx === 6) printBgClass = "print-bg-weekend";
 
-            if (status === "มา") { cellText = "✔"; textClass = "text-present"; countPresent++; grandTotalPresent++; grandTotalRecords++; }
-            else if (status === "ขาด") { cellText = "ข"; textClass = "text-absent"; countAbsent++; totalAbsent++; grandTotalRecords++; }
-            else if (status === "ลา") { cellText = "ล"; textClass = "text-leave"; countLeave++; totalLeave++; grandTotalRecords++; }
-            else if (status === "ป่วย") { cellText = "ป"; textClass = "text-sick"; countSick++; totalSick++; grandTotalRecords++; }
-            else if (status === "หยุด") { 
-                cellText = "-"; textClass = "text-muted"; cellClass = dayClasses[dayIdx]; 
-                printBgClass = "print-bg-holiday"; // สีเหลืองในกระดาษพิมพ์
-            }
-            else if (status === "ไม่มีคาบ") { 
-                cellText = "-"; textClass = "text-muted"; cellClass = "bg-noclass"; 
-                printBgClass = "print-bg-noclass"; // สีเทาอ่อนในกระดาษพิมพ์
+            if (status === "มา") { cellText = "✔"; textClass = "text-present"; countPresent++; grandTotalPresent++; grandTotalRecords++; taughtDays.add(currentDayStr); }
+            else if (status === "ขาด") { cellText = "ข"; textClass = "text-absent"; countAbsent++; totalAbsent++; grandTotalRecords++; taughtDays.add(currentDayStr); }
+            else if (status === "ลา") { cellText = "ล"; textClass = "text-leave"; countLeave++; totalLeave++; grandTotalRecords++; taughtDays.add(currentDayStr); }
+            else if (status === "ป่วย") { cellText = "ป"; textClass = "text-sick"; countSick++; totalSick++; grandTotalRecords++; taughtDays.add(currentDayStr); }
+            else if (status === "หยุด" || status === "ไม่มีคาบ") { cellText = "-"; textClass = "text-muted"; cellClass = dayClasses[dayIdx]; }
+
+            let isInactive = false;
+            if (dayIdx === 0 || dayIdx === 6 || status === "หยุด" || status === "ไม่มีคาบ") {
+                isInactive = true;
             }
 
-            studentRecord.days.push({ text: cellText, printClass: printBgClass });
+            studentRecord.days.push({ text: cellText, isInactive: isInactive });
             rowHTML += `<td class="${cellClass}" style="width: 35px; min-width: 35px; max-width: 35px; text-align:center; padding: 4px 0;"><span class="${textClass}" style="font-weight:600;">${cellText}</span></td>`;
         }
 
@@ -573,6 +688,8 @@ async function renderAttendanceMatrix() {
         tr.innerHTML = rowHTML;
         matrixBody.appendChild(tr);
     });
+
+    document.getElementById("stat-total-classes").textContent = `${taughtDays.size} คาบ`;
 
     const avgPresent = grandTotalRecords > 0 ? Math.round((grandTotalPresent / grandTotalRecords) * 100) : 0;
     document.getElementById("stat-avg").textContent = `${avgPresent}%`;
@@ -616,10 +733,9 @@ btnShowPreview.addEventListener("click", () => {
 
     printCacheData.forEach(s => {
         let rHTML = `<td>${s.no}</td><td style="text-align:left;">${s.name}</td>`;
-        
-        // ดึงคลาสสีสำหรับปริ้นท์จากที่คำนวณไว้ใน renderAttendanceMatrix
         s.days.forEach(day => {
-            rHTML += `<td class="${day.printClass}">${day.text}</td>`;
+            const bgClass = day.isInactive ? 'print-bg-weekend' : '';
+            rHTML += `<td class="${bgClass}">${day.text}</td>`;
         });
         rHTML += `<td>${s.counts.p}</td><td>${s.counts.a}</td><td>${s.counts.l}</td><td>${s.counts.s}</td><td>${s.counts.pct}</td>`;
         
