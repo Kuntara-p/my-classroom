@@ -46,6 +46,36 @@
         border-right: 1px solid var(--border-line);
         box-shadow: 4px 0 25px rgba(0, 0, 0, 0.5);
         z-index: 10;
+        transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .sidebar.collapsed {
+        margin-left: -260px;
+      }
+      .desktop-toggle-btn {
+        position: fixed;
+        bottom: 20px;
+        left: 280px;
+        background: var(--bg-card);
+        color: var(--gold-luxury);
+        border: 1px solid var(--border-line);
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        cursor: pointer;
+        z-index: 100;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s;
+      }
+      .sidebar.collapsed ~ .main-content .desktop-toggle-btn {
+        left: 20px;
+      }
+      .desktop-toggle-btn:hover {
+        transform: scale(1.1);
+        border-color: var(--gold-light);
       }
       .sidebar-brand {
         padding: 0 20px 20px 20px;
@@ -1107,6 +1137,107 @@
         color: var(--red);
       }
       .point-btn.sub:hover { background: var(--red); color: #fff; }
+
+      /* ================= Responsive Mobile UI ================= */
+      .mobile-header {
+        display: none;
+        background-color: var(--bg-sidebar);
+        padding: 15px 20px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-line);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      }
+      .mobile-header .brand {
+        font-family: var(--font-primary);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--gold-luxury);
+        text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hamburger-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-main);
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+      }
+      .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.6);
+        z-index: 90;
+        backdrop-filter: blur(2px);
+      }
+      .sidebar-backdrop.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          flex-direction: column;
+        }
+        .desktop-toggle-btn { 
+          display: none; 
+        }
+        .sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          transform: translateX(-100%);
+          height: 100vh;
+          width: 260px;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          z-index: 100;
+          overflow-y: auto;
+          box-shadow: 4px 0 25px rgba(0, 0, 0, 0.8);
+        }
+        .sidebar.show {
+          transform: translateX(0);
+        }
+        .mobile-header {
+          display: flex;
+        }
+        .main-content {
+          padding: 15px;
+          flex: 1;
+        }
+        .page-header h2 {
+          font-size: 22px;
+        }
+        .card {
+          padding: 15px;
+        }
+        .form-inline {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .form-group select, .form-group input {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        .btn {
+          width: 100%;
+          text-align: center;
+          margin-top: 10px;
+        }
+        .filter-layout {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
     </style>
     <link
       rel="stylesheet"
@@ -1129,7 +1260,14 @@
     </style>
   </head>
   <body>
-    <div class="sidebar">
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+      <div class="brand">🧬 Science by KruPor</div>
+      <button class="hamburger-btn" id="mobileMenuBtn">☰</button>
+    </div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <div class="sidebar" id="sidebarElement">
       <div class="sidebar-brand">
         <div style="color: var(--blue-pearl)">🧬 Science by KruPor</div>
         <div
@@ -1216,6 +1354,7 @@
     </div>
 
     <div class="main-content">
+      <button id="desktopSidebarToggle" class="desktop-toggle-btn" title="ซ่อน/แสดงเมนู">❮</button>
       <div id="dashboard-page" class="page active">
         <div class="page-header">
           <h2>📊 แดชบอร์ดสรุปภาพรวม</h2>
@@ -4862,6 +5001,50 @@
       }
 
       initTheme();
+
+      // ================= [ ระบบ Mobile Responsive ] =================
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const sidebarElement = document.getElementById("sidebarElement");
+      const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+      const menuItemsMobile = document.querySelectorAll(".menu-item, .sub-menu-item");
+
+      function toggleMobileMenu() {
+        sidebarElement.classList.toggle("show");
+        sidebarBackdrop.classList.toggle("show");
+      }
+
+      function closeMobileMenu() {
+        sidebarElement.classList.remove("show");
+        sidebarBackdrop.classList.remove("show");
+      }
+
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener("click", toggleMobileMenu);
+      }
+      if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener("click", closeMobileMenu);
+      }
+      
+      const desktopSidebarToggle = document.getElementById("desktopSidebarToggle");
+      if (desktopSidebarToggle) {
+        desktopSidebarToggle.addEventListener("click", () => {
+          sidebarElement.classList.toggle("collapsed");
+          if (sidebarElement.classList.contains("collapsed")) {
+            desktopSidebarToggle.innerHTML = "❯";
+          } else {
+            desktopSidebarToggle.innerHTML = "❮";
+          }
+        });
+      }
+
+      // Auto close sidebar when a menu item is clicked on mobile
+      menuItemsMobile.forEach(item => {
+        item.addEventListener("click", () => {
+          if (window.innerWidth <= 768) {
+            closeMobileMenu();
+          }
+        });
+      });
     </script>
   </body>
 </html>
