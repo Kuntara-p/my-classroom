@@ -623,6 +623,9 @@
         border-bottom: none;
       }
 
+      .luxury-table {
+        table-layout: auto !important;
+      }
       .modal-overlay {
         position: fixed;
         top: 0;
@@ -1191,6 +1194,18 @@
         }
         .desktop-toggle-btn { 
           display: none; 
+        }
+        /* Mobile fixes for Reward Table */
+        .star-icon {
+          font-size: 18px !important;
+        }
+        .star-container {
+          gap: 2px !important;
+          padding: 6px 8px !important;
+        }
+        .luxury-table th, .luxury-table td {
+          padding: 8px 4px !important;
+          font-size: 13px;
         }
         .sidebar {
           position: fixed;
@@ -1870,11 +1885,11 @@
             <table class="luxury-table" style="width: 100%; min-width: 600px;">
               <thead>
                 <tr>
-                  <th style="width: 60px; text-align: center">เลขที่</th>
+                  <th style="text-align: center">เลขที่</th>
                   <th>ชื่อ-นามสกุล</th>
-                  <th style="width: 360px; text-align: center">ระดับแต้ม (0-10)</th>
-                  <th style="width: 140px; text-align: center">จัดการแต้ม</th>
-                  <th style="width: 140px; text-align: center">รางวัล</th>
+                  <th style="text-align: center">ระดับแต้ม (0-10)</th>
+                  <th style="text-align: center">จัดการแต้ม</th>
+                  <th style="text-align: center">รางวัล</th>
                 </tr>
               </thead>
               <tbody id="rewardTableBody">
