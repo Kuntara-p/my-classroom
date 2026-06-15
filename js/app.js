@@ -474,7 +474,7 @@ window.openAddAssignmentModal = function(unitId, unitName) {
     document.getElementById("modalAddAssignmentMax").value = "10";
     
     // Populate indicators dropdown
-    const indSelect = document.getElementById("inputAssignIndicator");
+    const indSelect = document.getElementById("modalAddAssignmentIndicator");
     if(indSelect) {
         indSelect.innerHTML = "<option value=\"-\">-- ไม่ระบุตัวชี้วัด --</option>";
         let u = currentGradeEntryStructure.units.find(x => x.id === unitId);
@@ -499,7 +499,7 @@ btnConfirmAddAssignment.addEventListener("click", async () => {
     const maxScore = Number(document.getElementById("modalAddAssignmentMax").value);
     
     let indicator = "-";
-    const indSelect = document.getElementById("inputAssignIndicator");
+    const indSelect = document.getElementById("modalAddAssignmentIndicator");
     if(indSelect) {
         indicator = indSelect.value;
     }
@@ -4502,6 +4502,10 @@ window.editAssignment = function(assignId) {
                     <label>ชื่อช่องคะแนน</label>
                     <input type="text" id="editAssignName" class="form-control" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;">
                 </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>คะแนนเต็ม</label>
+                    <input type="number" id="editAssignMax" class="form-control" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;" min="1" max="100">
+                </div>
                 <div class="form-group" style="margin-bottom: 25px;">
                     <label>ตัวชี้วัด (ระบุหรือไม่ก็ได้)</label>
                     <select id="editAssignInd" class="form-control" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;">
@@ -4534,6 +4538,7 @@ window.editAssignment = function(assignId) {
     }
     
     document.getElementById('editAssignName').value = assign.name;
+    document.getElementById('editAssignMax').value = assign.fullScore || 10;
     
     // Try to select existing indicator if it exists
     if(assign.indicator && assign.indicator !== "-") {
@@ -4566,9 +4571,11 @@ window.editAssignment = function(assignId) {
         const newName = document.getElementById('editAssignName').value.trim();
         if(!newName) return window.showToast("⚠️ กรุณาระบุชื่อช่องคะแนน", "error");
         const newInd = document.getElementById('editAssignInd').value;
+        const newMax = parseInt(document.getElementById('editAssignMax').value) || 10;
         
         assign.name = newName;
         assign.indicator = newInd;
+        assign.fullScore = newMax;
         
         const room = gradeEntryRoom.value;
         const docRef = doc(db, "grade_structure", room.replace(/\//g, "_"));
