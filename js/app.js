@@ -2309,22 +2309,9 @@ async function loadRoomsDropdownAndTable() {
       // ================= [ แดชบอร์ดสรุปภาพรวม ] =================
       async function loadDashboardData() {
         try {
-           const roomsSnap = await getDocs(getRoomsCollection());
-           const studentsSnap = await getDocs(getStudentsCollection());
+           const classListEl = document.getElementById("dashClassStatsList");
+           if(classListEl) classListEl.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%;">กำลังโหลดข้อมูล...</div>`;
            
-           const validStudentIds = new Set();
-           const roomCounts = {};
-           studentsSnap.forEach(doc => {
-              validStudentIds.add(doc.id);
-              let r = doc.data().room || "ไม่ระบุ";
-              roomCounts[r] = (roomCounts[r] || 0) + 1;
-           });
-
-           document.getElementById("dashTotalRooms").innerText = roomsSnap.size;
-           document.getElementById("dashTotalStudents").innerText = studentsSnap.size;
-
-
-
            let today = new Date();
            let yy = today.getFullYear();
            let mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -2335,12 +2322,6 @@ async function loadRoomsDropdownAndTable() {
            let dashDateStr = `${parseInt(dd)} ${mNames[today.getMonth()]} ${today.getFullYear() + 543}`;
            const dashTodayDateEl = document.getElementById("dashTodayDate");
            if (dashTodayDateEl) dashTodayDateEl.innerText = `ประจำวันที่: ${dashDateStr}`;
-
-           const attSnap = await getDocs(getAttendanceCollection());
-           let todayMa = 0, todayKhad = 0, todayLa = 0, todayPuay = 0;
-           let termMa = 0, termKhad = 0, termLa = 0, termPuay = 0;
-           const noClassRooms = new Set();
-           const checkedRoomsToday = new Set();
 
            let currentSem = document.getElementById("metaSemester")?.value || "1";
            let tStart = currentSem === "1" ? window.classroomMeta?.term1Start : window.classroomMeta?.term2Start;
@@ -2369,8 +2350,45 @@ async function loadRoomsDropdownAndTable() {
              }
            }
 
-           attSnap.forEach(doc => {
-              let data = doc.data();
+           const roomsPromise = getDocs(getRoomsCollection());
+           const studentsPromise = getDocs(getStudentsCollection());
+           
+           let termPromise, todayPromise;
+           if (nStart && nEnd) {
+               termPromise = getDocs(query(getAttendanceCollection(), where("date", ">=", nStart), where("date", "<=", nEnd)));
+               if (todayStr < nStart || todayStr > nEnd) {
+                   todayPromise = getDocs(query(getAttendanceCollection(), where("date", "==", todayStr)));
+               } else {
+                   todayPromise = Promise.resolve({ forEach: () => {} });
+               }
+           } else {
+               termPromise = getDocs(getAttendanceCollection());
+               todayPromise = Promise.resolve({ forEach: () => {} });
+           }
+
+           const [roomsSnap, studentsSnap, snapTerm, snapToday] = await Promise.all([roomsPromise, studentsPromise, termPromise, todayPromise]);
+
+           document.getElementById("dashTotalRooms").innerText = roomsSnap.size;
+           document.getElementById("dashTotalStudents").innerText = studentsSnap.size;
+
+           const validStudentIds = new Set();
+           const roomCounts = {};
+           studentsSnap.forEach(doc => {
+              validStudentIds.add(doc.id);
+              let r = doc.data().room || "ไม่ระบุ";
+              roomCounts[r] = (roomCounts[r] || 0) + 1;
+           });
+
+           let todayMa = 0, todayKhad = 0, todayLa = 0, todayPuay = 0;
+           let termMa = 0, termKhad = 0, termLa = 0, termPuay = 0;
+           const noClassRooms = new Set();
+           const checkedRoomsToday = new Set();
+
+           const attDataMap = new Map();
+           snapTerm.forEach(doc => attDataMap.set(doc.id, doc.data()));
+           snapToday.forEach(doc => attDataMap.set(doc.id, doc.data()));
+
+           attDataMap.forEach((data, id) => {
               if (!validStudentIds.has(data.studentId)) return;
 
               if (data.date === todayStr) {
@@ -2434,9 +2452,8 @@ async function loadRoomsDropdownAndTable() {
               }
            }
 
-           const classListEl = document.getElementById("dashClassStatsList");
            if (Object.keys(roomCounts).length === 0) {
-              classListEl.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%;">ไม่มีข้อมูลห้องเรียน</div>`;
+              if(classListEl) classListEl.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%;">ไม่มีข้อมูลห้องเรียน</div>`;
            } else {
               let html = "";
               let sortedRooms = Object.keys(roomCounts).sort((a,b) => a.localeCompare(b, 'th', {numeric: true}));
@@ -2471,10 +2488,9 @@ async function loadRoomsDropdownAndTable() {
                    </div>
                  `;
               }
-              classListEl.innerHTML = html;
+              if(classListEl) classListEl.innerHTML = html;
            }
-
-        } catch (err) {
+        } catch(err) {
            console.error("Dashboard error:", err);
         }
       }
@@ -3862,7 +3878,9 @@ loadAllStudentsToRegistryTable();
         await loadMetadata();
         loadRoomsDropdownAndTable();
         loadAllStudentsToRegistryTable();
-        
+        if (typeof loadDashboardData === "function") {
+            loadDashboardData();
+        }
       }
       initApp();
 
