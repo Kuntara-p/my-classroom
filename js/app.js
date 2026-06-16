@@ -568,33 +568,7 @@ btnSaveGradeEntry.addEventListener("click", async () => {
     }
 });
 
-// ================= [ Mobile Menu ] =================
-(function() {
-    // Mobile menu
-    var mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    var sidebar = document.getElementById('sidebarElement');
-    var backdrop = document.getElementById('sidebarBackdrop');
-    function openMenu() {
-      if (sidebar) sidebar.classList.add('show');
-      if (backdrop) backdrop.classList.add('show');
-      document.body.style.overflow = 'hidden';
-    }
-    function closeMenu() {
-      if (sidebar) sidebar.classList.remove('show');
-      if (backdrop) backdrop.classList.remove('show');
-      document.body.style.overflow = '';
-    }
-    if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openMenu);
-    if (backdrop) backdrop.addEventListener('click', closeMenu);
-    document.querySelectorAll('.menu-item, .sub-menu-item').forEach(function(item) {
-      item.addEventListener('click', function() {
-        if (window.innerWidth <= 768) closeMenu();
-      });
-    });
 
-    // Desktop sidebar toggle is handled later in the file
-})();
-// ================= [ END Mobile Menu ] =================
 
 
       

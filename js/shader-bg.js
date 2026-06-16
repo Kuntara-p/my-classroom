@@ -5,6 +5,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // We expect <div id="shader-background"></div> in the body
     const container = document.getElementById('shader-background');
     if (!container) return;
+    
+    // Disable on mobile for smoothness
+    if (window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Apply static gradient background for mobile
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.width = '100vw';
+        container.style.height = '100vh';
+        container.style.zIndex = '-1';
+        container.style.background = 'linear-gradient(to bottom, #0f172a, #000000)';
+        return;
+    }
 
     // Set up basic styles for the container if not done via CSS
     container.style.position = 'fixed';
