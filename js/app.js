@@ -1566,7 +1566,7 @@ async function loadRoomsDropdownAndTable() {
         
         const noClassSchedules = window.classroomMeta?.noClassSchedules || [];
         const curSem = getSemesterOfDate(selectedDate);
-        const configuredNoClass = noClassSchedules.find(s => currentRoom.startsWith(s.room) && parseInt(s.dayOfWeek) === dayOfWeek && (s.semester === "all" || !s.semester || s.semester === curSem));
+        const configuredNoClass = noClassSchedules.find(s => currentRoom === s.room && parseInt(s.dayOfWeek) === dayOfWeek && (s.semester === "all" || !s.semester || s.semester === curSem));
 
         let hasSavedData = !attSnap.empty;
         const badge = document.getElementById("attendanceStatusBadge");
@@ -1915,7 +1915,7 @@ async function loadRoomsDropdownAndTable() {
             let effectiveDayIdx = substituteDay ? parseInt(substituteDay) : dayIdx;
 
             const curSem = getSemesterOfDate(dateObj);
-            const isScheduledNoClass = noClassSchedules.some(s => selectedRoom.startsWith(s.room) && parseInt(s.dayOfWeek) === effectiveDayIdx && (s.semester === "all" || !s.semester || s.semester === curSem));
+            const isScheduledNoClass = noClassSchedules.some(s => selectedRoom === s.room && parseInt(s.dayOfWeek) === effectiveDayIdx && (s.semester === "all" || !s.semester || s.semester === curSem));
 
             let cellClass = "";
             let cellText = "-";
@@ -1934,7 +1934,6 @@ async function loadRoomsDropdownAndTable() {
             } else if (dayIdx === 6) {
                cellClass = "bg-sat";
             }
-
             if (isHoliday) {
                // Handled
             } else if (isScheduledNoClass) {
@@ -2466,7 +2465,7 @@ async function loadRoomsDropdownAndTable() {
                  }
                  const noClassSchedules = window.classroomMeta?.noClassSchedules || [];
                  const curSem = typeof getSemesterOfDate === "function" ? getSemesterOfDate(today) : "1";
-                 const isNoClassToday = noClassSchedules.find(s => room.startsWith(s.room) && parseInt(s.dayOfWeek) === today.getDay() && (s.semester === "all" || !s.semester || s.semester === curSem));
+                 const isNoClassToday = noClassSchedules.find(s => room === s.room && parseInt(s.dayOfWeek) === today.getDay() && (s.semester === "all" || !s.semester || s.semester === curSem));
 
                  if (checkedRoomsToday.has(room)) {
                     statusHtml = `<div style="font-size: 11.5px; color: var(--green); margin-top: 8px; font-weight: 600; background: rgba(74, 222, 128, 0.1); padding: 4px; border-radius: 4px; border: 1px solid rgba(74,222,128,0.3);">✅ เช็คชื่อแล้ว</div>`;
@@ -2573,7 +2572,24 @@ async function loadRoomsDropdownAndTable() {
          document.getElementById("holidayNameInput").value = "";
          
          renderHolidaysList();
-         renderHolidaysList();
+
+         try {
+            const btn = document.getElementById("btnAddHoliday");
+            btn.textContent = "กำลังบันทึก...";
+            btn.disabled = true;
+            await setDoc(doc(db, "metadata", "classroom_info"), {
+               ...window.classroomMeta
+            });
+            window.showToast("✅ เพิ่มวันหยุดเรียบร้อยแล้ว!");
+            btn.textContent = "➕ เพิ่มวันหยุด";
+            btn.disabled = false;
+         } catch(e) {
+            console.error(e);
+            window.showToast("❌ เกิดข้อผิดพลาดในการบันทึกวันหยุด");
+            const btn = document.getElementById("btnAddHoliday");
+            btn.textContent = "➕ เพิ่มวันหยุด";
+            btn.disabled = false;
+         }
       });
       function renderNoClassList() {
         const tbody = document.getElementById("noClassListBody");
