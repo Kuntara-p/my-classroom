@@ -1259,6 +1259,11 @@
           justify-content: center;
           margin-top: 8px;
         }
+        /* Mobile: Keep table inline buttons small */
+        table .btn, td .btn {
+          width: auto !important;
+          margin-top: 0 !important;
+        }
         .filter-layout {
           flex-direction: column;
           align-items: stretch;

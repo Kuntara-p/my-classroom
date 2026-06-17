@@ -21,6 +21,12 @@
 
     
       <link rel="stylesheet" href="css/main.css">
+
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="รูปไอคอน/Gemini_Generated_Image_f7vmnf7vmnf7vmnf-removebg-preview.png" />
+    <meta name="theme-color" content="#1e2330" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 </head>
   <body>
     <div id="shader-background"></div>
@@ -1682,6 +1688,12 @@
 
     <script>
       function switchPage(pageId, event) {
+        // Close mobile sidebar if open
+        const sidebar = document.getElementById("sidebarElement");
+        const backdrop = document.getElementById("sidebarBackdrop");
+        if(sidebar && sidebar.classList.contains("show")) sidebar.classList.remove("show");
+        if(backdrop && backdrop.classList.contains("show")) backdrop.classList.remove("show");
+
         document
           .querySelectorAll(".page")
           .forEach((p) => p.classList.remove("active"));

@@ -1,0 +1,20 @@
+{
+  "name": "Science by KruPor",
+  "short_name": "ScienceKruPor",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1e2330",
+  "theme_color": "#1e2330",
+  "icons": [
+    {
+      "src": "รูปไอคอน/Gemini_Generated_Image_f7vmnf7vmnf7vmnf-removebg-preview.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "รูปไอคอน/Gemini_Generated_Image_f7vmnf7vmnf7vmnf-removebg-preview.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
