@@ -702,14 +702,14 @@
       .preview-toolbar {
         display: flex;
         gap: 15px;
-        margin-bottom: 20px;
         background: var(--bg-card);
         padding: 15px 30px;
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         border: 1px solid var(--border-line);
-        position: sticky;
-        top: 20px;
+        position: fixed;
+        top: 30px;
+        right: 40px;
         z-index: 10001;
       }
       .preview-paper {
@@ -727,20 +727,21 @@
       .print-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 12px;
+        font-size: 10px;
         text-align: center;
         color: black;
       }
       .print-table th,
       .print-table td {
         border: 1px solid #1e293b;
-        padding: 4px;
+        padding: 2px;
         vertical-align: middle;
         white-space: nowrap;
+        font-weight: 500;
       }
       .print-table th {
         background-color: #f1f5f9;
-        font-weight: 600;
+        font-weight: 500;
         color: black;
       }
       .print-bg-weekend {
@@ -781,16 +782,21 @@
         .main-content,
         .preview-toolbar,
         #toastNotification,
-        #customDeleteModal {
+        #customDeleteModal,
+        .mobile-header,
+        #shader-background,
+        .sidebar-backdrop {
           display: none !important;
         }
         .preview-modal {
           position: static !important;
-          display: block !important;
           background: transparent !important;
           padding: 0 !important;
           height: auto !important;
           overflow: visible !important;
+        }
+        .preview-modal[style*="display: none"] {
+          display: none !important;
         }
         .preview-paper {
           box-shadow: none !important;
